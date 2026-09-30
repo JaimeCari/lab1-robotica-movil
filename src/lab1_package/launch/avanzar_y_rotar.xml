@@ -1,0 +1,10 @@
+<launch>
+
+  <!-- Simulador -->
+  <include file="$(find-pkg-share very_simple_robot_simulator)/launch/run_all.xml" />
+
+  <!-- Actividad 1.1 / 1.2 -->
+  <node pkg="lab1" exec="dead_reckoning_nav" name="dead_reckoning_nav" output="screen" />
+  <node pkg="lab1" exec="pose_loader" name="pose_loader" output="screen" />
+
+</launch>

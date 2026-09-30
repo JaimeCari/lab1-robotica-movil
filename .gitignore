@@ -1,0 +1,6 @@
+build/
+install/
+log/
+**/__pycache__/
+*.pyc
+src/very_simple_robot_simulator/

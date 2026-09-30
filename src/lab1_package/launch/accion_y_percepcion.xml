@@ -1,0 +1,17 @@
+<launch>
+
+  <!-- Simulador -->
+  <include file="$(find-pkg-share very_simple_robot_simulator)/launch/run_all.xml" />
+  
+  <!-- Kinect: run_all.xml lo trae comentado por defecto, lo agregamos aparte -->
+  <include file="$(find-pkg-share very_simple_robot_simulator)/launch/openni_simulator.xml" />
+
+
+  <!-- Navegación -->
+  <node pkg="lab1" exec="dead_reckoning_nav" name="dead_reckoning_nav" output="screen" />
+  <node pkg="lab1" exec="pose_loader" name="pose_loader" output="screen" />
+
+  <!-- Percepción -->
+  <node pkg="lab1" exec="obstacle_detector" name="obstacle_detector" output="screen" />
+
+</launch>

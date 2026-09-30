@@ -1,0 +1,8 @@
+<launch>
+  
+  <!-- Levantar el simulador -->
+  <include file="$(find-pkg-share very_simple_robot_simulator)/launch/run_all.xml" />
+  <!-- Nodo de teleoperación -->
+  <node pkg="lab1" exec="teleop_key" name="teleoperation_key" output="screen"/>
+  
+</launch>
