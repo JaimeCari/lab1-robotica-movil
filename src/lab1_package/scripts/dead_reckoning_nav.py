@@ -87,7 +87,7 @@ class Dead_reckoning_nav( Node ):
             return None
         signo = 1 if distancia > 0 else -1
         return (signo * v, 0.0, abs(distancia) / v)
-    
+    """"
     # Sin factor comentado
     def comando_giro(self, angulo, w=1.0):
         angul = math.atan2(math.sin(angulo), math.cos(angulo))
@@ -95,8 +95,8 @@ class Dead_reckoning_nav( Node ):
             return None
         signo = 1 if angul > 0 else -1
         return (0.0, signo * w, abs(angul) / w)
-    
     """
+    
     def comando_giro(self, angulo, w=1.0):
         #Comando de abajao permite realizar el giro mas optimo (el de menor distancia)
         #ya que funcion restringe el rango entre -180 a 180
@@ -108,7 +108,7 @@ class Dead_reckoning_nav( Node ):
         tiempo_factor = FACTOR_CORRECCION * (abs(angul) / w)
     
         return (0.0, signo * w, tiempo_factor)
-    """
+
 
     def mover_robot_a_destino(self, goal_pose):
         x = goal_pose[0]
