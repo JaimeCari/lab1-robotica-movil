@@ -20,3 +20,4 @@ DATA_DIR = "/home/jaimecari/Documents/ROB_MOVIL/lab01_ws/data"
 PATH_POSE_LOADER = "/home/jaimecari/Documents/ROB_MOVIL/lab01_ws/src/lab1_package/config/poses.txt"
 
 EPS = 1e-7  
+FACTOR_CORRECCION = 1.0911736178

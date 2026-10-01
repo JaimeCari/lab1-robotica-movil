@@ -1,32 +1,30 @@
 #!/usr/bin/env python3
 import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist, PoseArray, Pose, Vector3
+from .parameters import EPS
+
 import time
 import threading
 import time
 import math
-
-from rclpy.node import Node
-from std_msgs.msg import String
-from geometry_msgs.msg import Twist, PoseArray, Pose, Vector3
-from .parameters import FACTOR_CORRECCION, EPS
-
 
 class Dead_reckoning_nav( Node ):
     def __init__( self ):
         super().__init__( 'dead_reckoning_nav')
         self.max_v = 0# [m/s]
         self.max_w = 0 # [rad/s]
-
+        
         # Variables de estado de percepción
         self.occupancy_state = [0.0, 0.0, 0.0] # [izq, centro, der]
         self.last_log = "" # Para evitar spam en terminal
-
+        
         self.cmd_vel_mux_pub = self.create_publisher( Twist, '/cmd_vel', 10 )
         self.subscription = self.create_subscription(PoseArray,'goal_list', self.accion_mover_cb, 10)
-
+        
         # Suscriptor al detector de obstáculos
         self.occ_sub = self.create_subscription(Vector3, '/occupancy_state', self.occupancy_cb, 10)
-        
+
     def occupancy_cb(self, msg):
         self.occupancy_state = [msg.x, msg.y, msg.z]
         
@@ -53,33 +51,23 @@ class Dead_reckoning_nav( Node ):
         self.get_logger().info( 'publishing speed (%f, %f)' % (speed.linear.x, speed.angular.z) )
         self.cmd_vel_mux_pub.publish( speed )
 
-
     def aplicar_velocidad(self, speed_command_list):
         inicio = time.perf_counter()
         for v, w, t in speed_command_list:
             self.max_v = v
             self.max_w = w
-            t_restante = t
-            while t_restante > 0:
-                ciclo_ini = time.time()
-
-                hay_obstaculo = any(s == 1.0 for s in self.occupancy_state)
-                if hay_obstaculo:
-                    stop = Twist()
-                    self.cmd_vel_mux_pub.publish(stop)
-                else:
-                    self.move()
-    
-                time.sleep(min(0.05, t_restante))
-
-                # Solo descuenta tiempo si NO hubo obstáculo en este ciclo
-                if not hay_obstaculo:
-                    t_restante -= (time.time() - ciclo_ini)
-
+            t_ini = time.time()
+            while True:
+                restante = t - (time.time() - t_ini)
+                if restante <= 0:
+                    break
+                self.move()
+                time.sleep(min(0.05, restante))
         self.max_v = 0.0
         self.max_w = 0.0
         self.move()
         self.get_logger().info('tiempo: ' + str(time.perf_counter() - inicio))
+
 
     def comando_avance(self, distancia, v=0.2):
         # El signo de la distancia define si avanza o retrocede
@@ -87,16 +75,7 @@ class Dead_reckoning_nav( Node ):
             return None
         signo = 1 if distancia > 0 else -1
         return (signo * v, 0.0, abs(distancia) / v)
-    
-    # Sin factor comentado
-    def comando_giro(self, angulo, w=1.0):
-        angul = math.atan2(math.sin(angulo), math.cos(angulo))
-        if abs(angul) < EPS:
-            return None
-        signo = 1 if angul > 0 else -1
-        return (0.0, signo * w, abs(angul) / w)
-    
-    """
+
     def comando_giro(self, angulo, w=1.0):
         #Comando de abajao permite realizar el giro mas optimo (el de menor distancia)
         #ya que funcion restringe el rango entre -180 a 180
@@ -105,10 +84,7 @@ class Dead_reckoning_nav( Node ):
         if abs(angul) < EPS:
             return None
         signo = 1 if angul > 0 else -1
-        tiempo_factor = FACTOR_CORRECCION * (abs(angul) / w)
-    
-        return (0.0, signo * w, tiempo_factor)
-    """
+        return (0.0, signo * w, abs(angul) / w)
 
     def mover_robot_a_destino(self, goal_pose):
         x = goal_pose[0]
@@ -121,7 +97,7 @@ class Dead_reckoning_nav( Node ):
         comandos = []
 
 
-        #Este es el caso en que solo se necesita rotar y no mover a ninngun lado
+        #Este es el caso en que solo se necesita rotar y no mover a ningun lado
         if not hay_x and not hay_y:
             comandos.append(self.comando_giro(theta))
 
@@ -165,21 +141,9 @@ class Dead_reckoning_nav( Node ):
 
         self.aplicar_velocidad(comandos)
 
-    #LA version con threas la hizo el jonathan 
-    #accion_mover_cb lanza procesar_metas y retorna de inmediato. 
-    #El hilo principal (spin()) queda libre, y occupancy_cb se 
-    #ejecuta en tiempo real mientras el robot se mueve
-    #def accion_mover_cb(self, msg):
-    #    for pose in msg.poses:
-    #        x = pose.position.x
-    #        y = pose.position.y
-    #        #el comando atan2 devuelve el angulo entre esos catetos, por una razon de
-    #        #cuaterniones se debe multiplicar por dos, para recibir el angulo
-    #        #atan 2, sirve para las 4 cuadriculas
-    #        theta = 2 * math.atan2(pose.orientation.z, pose.orientation.w)
-    #        self.mover_robot_a_destino((x, y, theta))
-
     def accion_mover_cb(self, msg):
+        # En lugar de ejecutar el movimiento aquí y bloquear ROS, 
+        # lanzamos un hilo independiente para procesar toda la lista de metas.
         hilo_movimiento = threading.Thread(target=self.procesar_metas, args=(msg,))
         hilo_movimiento.start()
 
@@ -189,8 +153,6 @@ class Dead_reckoning_nav( Node ):
             y = pose.position.y
             theta = 2 * math.atan2(pose.orientation.z, pose.orientation.w)
             self.mover_robot_a_destino((x, y, theta))
-
-
 
 def main( args = None ):
 
@@ -203,3 +165,6 @@ def main( args = None ):
 
 if __name__ == '__main__':
     main()  
+
+
+

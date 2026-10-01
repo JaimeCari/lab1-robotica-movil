@@ -54,7 +54,7 @@ def main() -> None:
 
     # Se desempaqueta la tupla (x, y) en dos argumentos
     error_real = xy_error(*run['real_pose']) * 100   # m -> cm
-    error_odom = xy_error(*run['odometry']) * 100s
+    error_odom = xy_error(*run['odometry']) * 100
 
     print(f'\nError real (inicio-fin): {error_real:.3f} cm')
     print(f'Error odometria (inicio-fin): {error_odom:.3f} cm')
