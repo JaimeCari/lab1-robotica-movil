@@ -53,47 +53,20 @@ class Dead_reckoning_nav( Node ):
 
     def aplicar_velocidad(self, speed_command_list):
         inicio = time.perf_counter()
-        
-        for comando in speed_command_list:
-            self.max_v = comando[0] 
-            self.max_w = comando[1]
-            tiempo_sol = comando[2]
-
-            tiempo_efectivo = 0.0
-            ultimo_tiempo = time.time()
-            estado_anterior_libre = True # Asumimos que comienza libre
-            
-            while tiempo_efectivo < tiempo_sol:
-                # Se mide cuánto tiempo pasó desde el último ciclo
-                tiempo_actual = time.time()
-                delta = tiempo_actual - ultimo_tiempo
-                ultimo_tiempo = tiempo_actual
-                
-                # Si en el ciclo anterior estábamos moviéndonos, sumamos ese tiempo
-                if estado_anterior_libre:
-                    tiempo_efectivo += delta
-                
-                # Evaluamos la situación actual de obstáculos
-                hay_obstaculo = (self.occupancy_state[0] == 1.0 or 
-                                 self.occupancy_state[1] == 1.0 or 
-                                 self.occupancy_state[2] == 1.0)
-                
-                if hay_obstaculo:
-                    # Detención segura
-                    vel_detenida = Twist()
-                    vel_detenida.linear.x = 0.0
-                    vel_detenida.angular.z = 0.0
-                    self.cmd_vel_mux_pub.publish(vel_detenida)
-                    estado_anterior_libre = False # Guardamos el estado
-                else:
-                    # Camino libre, movimiento normal
-                    self.move()
-                    estado_anterior_libre = True # Guardamos el estado
-                
-                time.sleep(0.1)
-                
-        final = time.perf_counter()
-        self.get_logger().info( 'tiempo total (incluyendo obstáculos): ' + str(final - inicio))
+        for v, w, t in speed_command_list:
+            self.max_v = v
+            self.max_w = w
+            t_ini = time.time()
+            while True:
+                restante = t - (time.time() - t_ini)
+                if restante <= 0:
+                    break
+                self.move()
+                time.sleep(min(0.05, restante))
+        self.max_v = 0.0
+        self.max_w = 0.0
+        self.move()
+        self.get_logger().info('tiempo: ' + str(time.perf_counter() - inicio))
 
 
     def comando_avance(self, distancia, v=0.2):
